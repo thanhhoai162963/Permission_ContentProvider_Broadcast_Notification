@@ -26,6 +26,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -33,10 +34,23 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.work.Constraints
+import androidx.work.NetworkType
+import androidx.work.OneTimeWorkRequest
+import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.OutOfQuotaPolicy
+import androidx.work.PeriodicWorkRequestBuilder
+import androidx.work.WorkManager
+import androidx.work.WorkRequest
 import coil.compose.AsyncImage
 import com.example.permissionandroid2.broadcast.MyBroadcastReceiver
 import com.example.permissionandroid2.notification.MyNotification
+import com.example.permissionandroid2.service.LongRunningWorker
+import com.example.permissionandroid2.service.NotificationService
+import com.example.permissionandroid2.service.NotificationWorker
 import com.example.permissionandroid2.ui.theme.PermissionAndroid2Theme
+import kotlinx.coroutines.launch
+import java.util.concurrent.TimeUnit
 
 class MainActivity : ComponentActivity() {
 
@@ -47,68 +61,83 @@ class MainActivity : ComponentActivity() {
         super.onDestroy()
     }
 
+    private fun setOnTime() {
+        val constrain = Constraints.Builder()
+            .setRequiredNetworkType(NetworkType.CONNECTED)
+            .build()
+        val uploadReq = OneTimeWorkRequest.Builder(NotificationService::class.java)
+            .setConstraints(constrain)
+            .setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)//Expedited jobs only support network and storage constraints
+            .build()
+        val workMager = WorkManager.getInstance(CustomApplication.instance)
+        workMager.enqueue(uploadReq)
+    }
+    private fun perioridc(){
+        val periodicWorkRequest = PeriodicWorkRequestBuilder<NotificationService>(15, TimeUnit.MINUTES).build()
+        WorkManager.getInstance(CustomApplication.instance).enqueue(periodicWorkRequest)
+    }
+
+    private fun longRunning(){
+        val longRunningWorkRequest = OneTimeWorkRequestBuilder<LongRunningWorker>().build()
+        WorkManager.getInstance(CustomApplication.instance).enqueue(longRunningWorkRequest)
+    }
+    //B3 khoi tao service
+    fun oneTimeService(){
+        val notificationWorker = OneTimeWorkRequestBuilder<NotificationWorker>().build()
+        WorkManager.getInstance(CustomApplication.instance).enqueue(notificationWorker)
+    }
+
     @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
+        MyNotification.createChannel("ddd")
+        val uploadWorkRequest = OneTimeWorkRequestBuilder<NotificationService>().build()
 
+        enableEdgeToEdge()
         registerReceiver(myBroadcastReceiver, IntentFilter(Intent.ACTION_AIRPLANE_MODE_CHANGED))
 
         setContent {
             var captureImageUri by remember { mutableStateOf<Uri?>(null) }
+            val scope = rememberCoroutineScope()
 
-            val launchGallery = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) {uri->
-                captureImageUri = uri
-            }
+            val launchGallery =
+                rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+                    captureImageUri = uri
+                }
             //B5:
-            val launchPermissionCamera = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) {
+            val launchPermissionCamera =
+                rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) {
 
-            }
+                }
 
             //B3:
-            val launchPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {
-                if (it == true) {
-                    Toast.makeText(this, "Permission Granted", Toast.LENGTH_SHORT).show()
-                }else{
+            val launchPermission =
+                rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {
+                    if (it == true) {
+                        Toast.makeText(this, "Permission Granted", Toast.LENGTH_SHORT).show()
+                    } else {
 
+                    }
                 }
-            }
 
             Column {
-                Box(Modifier.fillMaxSize().clickable {
-                    MyNotification.apply {
-                        createChannel("LizAI")
-                        createNotification()
-                    }
-                })
+
                 //B4:
-                Box(Modifier.size(300.dp).clickable {
-
-                    launchGallery.launch("image/*")
-                    requestPermissionNotification(
-                        onGranted = {},
-                        onExplainDenied = {},
-                        onRequest = {
-                            launchPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
-                        }
+                Box(
+                    Modifier
+                        .fillMaxSize()
+                        .clickable {
+                            perioridc()
+                        }) {
+                    AsyncImage(
+                        modifier = Modifier
+                            .size(300.dp)
+                            .align(Alignment.Center),
+                        contentDescription = "",
+                        model = captureImageUri
                     )
-
-                    /* requestPermissionCamera(
-                         onGranted = {
-                             //B6:
-                             captureImageUri = CameraService.takeImageFromCameraDevice(this)
-                             captureImageUri?.let { launchPermissionCamera.launch(it) }
-                         }, onExplainDenied = {
-
-                         }, onRequest = {
-                             launchPermission.launch(Manifest.permission.CAMERA)
-                         }
-                     )*/
-                }){
-                    AsyncImage(modifier = Modifier.size(300.dp).align(Alignment.Center), contentDescription = "", model = captureImageUri)
                 }
             }
-
 
 
         }

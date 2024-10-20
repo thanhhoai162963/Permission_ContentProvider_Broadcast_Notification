@@ -1,6 +1,7 @@
 package com.example.permissionandroid2.notification
 
 import android.Manifest
+import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
@@ -19,7 +20,7 @@ import com.example.permissionandroid2.R
 
 object MyNotification {
     private const val CHANNEL_ID = "channel_reminder_1"
-    private const val NOTIFICATION_ID = 115
+     const val NOTIFICATION_ID = 115
 
     @RequiresApi(Build.VERSION_CODES.O)
     internal fun createChannel(channelName: String) {
@@ -31,7 +32,7 @@ object MyNotification {
         notificationManager.createNotificationChannel(notificationChannel)
     }
 
-    internal fun createNotification() {
+    internal fun createNotification():Notification {
         val builder = NotificationCompat.Builder(CustomApplication.instance, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_launcher_foreground)
             .setContentTitle("New Message")
@@ -54,5 +55,7 @@ object MyNotification {
             }
             notify(NOTIFICATION_ID, builder.build())
         }
+        return builder.build()
     }
+
 }

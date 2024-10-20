@@ -6,12 +6,12 @@ plugins {
 
 android {
     namespace = "com.example.permissionandroid2"
-    compileSdk = 34
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "com.example.permissionandroid2"
-        minSdk = 24
-        targetSdk = 34
+        minSdk = 26
+        targetSdk = 35
         versionCode = 1
         versionName = "1.0"
 
@@ -57,5 +57,11 @@ dependencies {
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
     implementation(libs.coil.compose)
+    implementation("androidx.credentials:credentials:1.5.0-alpha06")
+    implementation("androidx.credentials:credentials-play-services-auth:1.5.0-alpha06")
+    implementation (libs.googleid)
+
+    //B0: import
+    implementation("androidx.work:work-runtime-ktx:2.9.1")
 
 }
